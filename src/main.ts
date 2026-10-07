@@ -1,20 +1,18 @@
 // Flappy Bird on a single canvas. The world is a fixed 300x300 logical square
 // (the X player card is square) that gets scaled to fit whatever iframe we are in.
 
-const W = 300;
-const H = 300;
+import {
+  BIRD_R, BIRD_X, FIRST_PIPE_X, H, NAME_MAX_LENGTH, NEXT_PIPE_X, PIPE_SPEED, PIPE_W, SPAWN_TRIGGER_X, W, cleanName,
+} from "./rules.js";
+import { board, initScoreboard, qualifies, refreshBoard, submitScore } from "./scoreboard.js";
+
 const GROUND_H = 40;
 const FLOOR_Y = H - GROUND_H;
 
 const GRAVITY = 900;
 const FLAP_VELOCITY = -270;
 const MAX_FALL_SPEED = 420;
-const PIPE_SPEED = 90;
-const PIPE_W = 40;
 const PIPE_GAP = 88;
-const PIPE_SPACING = 155;
-const BIRD_X = 80;
-const BIRD_R = 10;
 const STEP = 1 / 120;
 
 const COLORS = {
@@ -31,6 +29,8 @@ const COLORS = {
   beak: "#f75b2c",
   outline: "#543847",
   white: "#ffffff",
+  highlight: "#fcd34d",
+  panel: "rgba(84, 56, 71, 0.55)",
 };
 
 type State = "ready" | "playing" | "dead";
@@ -38,6 +38,10 @@ type Pipe = { x: number; gapY: number; scored: boolean };
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
+const nameForm = document.getElementById("name-form") as HTMLFormElement;
+const nameInput = document.getElementById("name-input") as HTMLInputElement;
+const nameSkip = document.getElementById("name-skip") as HTMLButtonElement;
+const nameStatus = document.getElementById("name-status") as HTMLElement;
 const isPoster = new URLSearchParams(location.search).has("poster");
 
 let state: State = "ready";
@@ -49,6 +53,8 @@ let best = loadBest();
 let groundOffset = 0;
 let time = 0;
 let deadAt = 0;
+let playerName = loadName();
+let askingName = false;
 
 function loadBest(): number {
   try {
@@ -63,6 +69,22 @@ function saveBest(value: number): void {
     localStorage.setItem("flappy-best", String(value));
   } catch {
     // Storage can be blocked inside third-party iframes; best score just won't persist.
+  }
+}
+
+function loadName(): string | null {
+  try {
+    return localStorage.getItem("flappy-name");
+  } catch {
+    return null;
+  }
+}
+
+function saveName(value: string): void {
+  try {
+    localStorage.setItem("flappy-name", value);
+  } catch {
+    // Name just won't be prefilled next time.
   }
 }
 
@@ -83,11 +105,11 @@ function spawnPipe(x: number): void {
 function flap(): void {
   if (state === "ready") {
     state = "playing";
-    spawnPipe(W + 40);
+    spawnPipe(FIRST_PIPE_X);
   }
   if (state === "playing") {
     birdVy = FLAP_VELOCITY;
-  } else if (state === "dead" && time - deadAt > 0.6) {
+  } else if (state === "dead" && !askingName && time - deadAt > 0.6) {
     reset();
   }
 }
@@ -99,6 +121,8 @@ function die(): void {
     best = score;
     saveBest(best);
   }
+  if (qualifies(score, playerName)) openNameForm();
+  else void refreshBoard();
 }
 
 function circleHitsRect(cx: number, cy: number, r: number, x: number, y: number, w: number, h: number): boolean {
@@ -152,7 +176,7 @@ function update(dt: number): void {
 
   pipes = pipes.filter((p) => p.x + PIPE_W > -10);
   const last = pipes[pipes.length - 1];
-  if (!last || last.x < W - PIPE_SPACING) spawnPipe(W + 10);
+  if (!last || last.x < SPAWN_TRIGGER_X) spawnPipe(NEXT_PIPE_X);
 }
 
 // ---------- drawing ----------
@@ -293,10 +317,42 @@ function drawOverlay(): void {
   } else if (state === "playing") {
     text(String(score), W / 2, 40, 32);
   } else {
-    text("GAME OVER", W / 2, 70, 32);
-    text(`score ${score}   best ${best}`, W / 2, 112, 16);
-    if (time - deadAt > 0.6) text("click to retry", W / 2, 205, 14);
+    text("GAME OVER", W / 2, 38, 28);
+    text(`score ${score}   best ${best}`, W / 2, 70, 15);
+    drawBoard();
+    if (!askingName && time - deadAt > 0.6) text("click to retry", W / 2, FLOOR_Y + 22, 13);
   }
+}
+
+function drawBoard(): void {
+  const x = 50;
+  const y = 88;
+  const w = W - 100;
+  const h = 150;
+  ctx.fillStyle = COLORS.panel;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 8);
+  ctx.fill();
+
+  text("TOP 10", W / 2, y + 13, 13);
+  if (board.status !== "ready" || board.top.length === 0) {
+    const msg = board.status === "loading" ? "loading..." : board.status === "error" ? "scoreboard offline" : "no scores yet";
+    text(msg, W / 2, y + h / 2 + 6, 11);
+    return;
+  }
+
+  ctx.font = `700 10px system-ui, sans-serif`;
+  ctx.textBaseline = "middle";
+  board.top.forEach((entry, i) => {
+    const rowY = y + 32 + i * 11.5;
+    const mine = playerName !== null && entry.name.toLowerCase() === playerName.toLowerCase();
+    ctx.fillStyle = mine ? COLORS.highlight : COLORS.white;
+    ctx.textAlign = "left";
+    ctx.fillText(`${i + 1}.`, x + 12, rowY);
+    ctx.fillText(entry.name, x + 32, rowY);
+    ctx.textAlign = "right";
+    ctx.fillText(String(entry.score), x + w - 12, rowY);
+  });
 }
 
 function draw(): void {
@@ -322,6 +378,45 @@ function resize(): void {
 window.addEventListener("resize", resize);
 resize();
 
+// ---------- name entry for a top 10 score ----------
+
+function openNameForm(): void {
+  askingName = true;
+  nameInput.value = playerName ?? "";
+  nameStatus.textContent = "";
+  nameForm.hidden = false;
+  nameInput.focus();
+}
+
+function closeNameForm(): void {
+  askingName = false;
+  nameForm.hidden = true;
+  canvas.focus();
+}
+
+nameInput.maxLength = NAME_MAX_LENGTH;
+// Keep clicks and keys inside the form from flapping or restarting the game.
+nameForm.addEventListener("pointerdown", (e) => e.stopPropagation());
+nameForm.addEventListener("keydown", (e) => {
+  e.stopPropagation();
+  if (e.key === "Escape") closeNameForm();
+});
+nameSkip.addEventListener("click", closeNameForm);
+nameForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = cleanName(nameInput.value);
+  if (!name) {
+    nameStatus.textContent = "Letters, numbers, space, . _ - only";
+    return;
+  }
+  nameStatus.textContent = "Saving...";
+  playerName = name;
+  saveName(name);
+  const ok = await submitScore(name, score);
+  if (ok) closeNameForm();
+  else nameStatus.textContent = "Couldn't save score. Try again?";
+});
+
 // Inside the X iframe the page only gets keyboard events after the first click,
 // so pointer input is the primary control and also grabs focus.
 window.addEventListener("pointerdown", (e) => {
@@ -335,6 +430,8 @@ window.addEventListener("keydown", (e) => {
     if (!e.repeat) flap();
   }
 });
+
+if (!isPoster) void initScoreboard();
 
 let last = performance.now();
 let acc = 0;

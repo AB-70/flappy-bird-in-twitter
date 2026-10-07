@@ -10,5 +10,5 @@
     "allowImportingTsExtensions": true,
     "skipLibCheck": true
   },
-  "include": ["src", "scripts", "vite.config.ts"]
+  "include": ["src", "api", "lib", "scripts", "vite.config.ts"]
 }

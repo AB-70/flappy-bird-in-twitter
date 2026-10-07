@@ -26,11 +26,44 @@
     <style>
       html, body { margin: 0; height: 100%; background: #4ec0ca; overflow: hidden; }
       body { display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+      #stage { position: relative; }
       canvas { display: block; outline: none; }
+      #name-form {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        width: min(80%, 320px); box-sizing: border-box; padding: 16px;
+        display: flex; flex-direction: column; gap: 10px;
+        font: 600 15px system-ui, sans-serif; color: #fff; text-align: center;
+        background: #543847; border: 3px solid #fff; border-radius: 12px;
+      }
+      #name-form[hidden] { display: none; }
+      #name-form strong { font-size: 18px; }
+      #name-input {
+        font: inherit; color: #543847; text-align: center;
+        padding: 8px; border: 2px solid #fff; border-radius: 8px; background: #fff;
+      }
+      #name-form .buttons { display: flex; gap: 8px; }
+      #name-form button {
+        flex: 1; font: inherit; padding: 8px; border-radius: 8px; cursor: pointer;
+        border: 2px solid #fff; background: #73bf2e; color: #fff;
+      }
+      #name-form button[type="button"] { background: transparent; }
+      #name-status { min-height: 1.2em; font-size: 13px; color: #fcd34d; }
     </style>
   </head>
   <body>
-    <canvas id="game" tabindex="0"></canvas>
+    <div id="stage">
+      <canvas id="game" tabindex="0"></canvas>
+      <form id="name-form" hidden autocomplete="off">
+        <strong>🏆 Top 10 score!</strong>
+        <label for="name-input">Enter your name</label>
+        <input id="name-input" name="name" required spellcheck="false" enterkeyhint="done" />
+        <div class="buttons">
+          <button type="button" id="name-skip">Skip</button>
+          <button type="submit">Save</button>
+        </div>
+        <div id="name-status" aria-live="polite"></div>
+      </form>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
