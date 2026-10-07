@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Flappy Bird</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐤</text></svg>" />
+
+    <!-- X / Twitter Player Card: shows poster.png with a play button, then loads this page in an iframe -->
+    <meta name="twitter:card" content="player" />
+    <meta name="twitter:title" content="Flappy Bird, right in your timeline" />
+    <meta name="twitter:description" content="Click to play. No install, no app, just flap." />
+    <meta name="twitter:image" content="%SITE_URL%/poster.png" />
+    <meta name="twitter:image:alt" content="Flappy Bird title screen" />
+    <meta name="twitter:player" content="%SITE_URL%/" />
+    <meta name="twitter:player:width" content="600" />
+    <meta name="twitter:player:height" content="600" />
+
+    <!-- Open Graph fallback for other sites (Discord, Slack, iMessage) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="Flappy Bird, right in your timeline" />
+    <meta property="og:description" content="Click to play. No install, no app, just flap." />
+    <meta property="og:image" content="%SITE_URL%/poster.png" />
+
+    <style>
+      html, body { margin: 0; height: 100%; background: #4ec0ca; overflow: hidden; }
+      body { display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+      canvas { display: block; outline: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" tabindex="0"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
