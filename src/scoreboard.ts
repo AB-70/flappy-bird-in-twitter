@@ -41,18 +41,20 @@ export function qualifies(score: number, name: string | null): boolean {
   return board.top.length < LEADERBOARD_SIZE || score > board.top[board.top.length - 1].score;
 }
 
-export async function submitScore(name: string, score: number): Promise<boolean> {
+/** Returns null on success, otherwise a message to show the player. */
+export async function submitScore(name: string, score: number): Promise<string | null> {
+  if (!token) return "No session token. Reload and try again.";
   try {
     const res = await fetch("/api/scores", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name, score, token }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) return (await res.text()) || `Server error ${res.status}`;
     board.top = ((await res.json()) as { top: Entry[] }).top;
     board.status = "ready";
-    return true;
+    return null;
   } catch {
-    return false;
+    return "Network error. Try again?";
   }
 }

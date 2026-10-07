@@ -38,9 +38,10 @@ type Pipe = { x: number; gapY: number; scored: boolean };
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
-const nameForm = document.getElementById("name-form") as HTMLFormElement;
+const nameForm = document.getElementById("name-form") as HTMLElement;
 const nameInput = document.getElementById("name-input") as HTMLInputElement;
 const nameSkip = document.getElementById("name-skip") as HTMLButtonElement;
+const nameSave = document.getElementById("name-save") as HTMLButtonElement;
 const nameStatus = document.getElementById("name-status") as HTMLElement;
 const isPoster = new URLSearchParams(location.search).has("poster");
 
@@ -384,6 +385,7 @@ function openNameForm(): void {
   askingName = true;
   nameInput.value = playerName ?? "";
   nameStatus.textContent = "";
+  nameSave.disabled = false;
   nameForm.hidden = false;
   nameInput.focus();
 }
@@ -400,22 +402,30 @@ nameForm.addEventListener("pointerdown", (e) => e.stopPropagation());
 nameForm.addEventListener("keydown", (e) => {
   e.stopPropagation();
   if (e.key === "Escape") closeNameForm();
+  if (e.key === "Enter") {
+    e.preventDefault();
+    void submitName();
+  }
 });
 nameSkip.addEventListener("click", closeNameForm);
-nameForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+nameSave.addEventListener("click", () => void submitName());
+
+async function submitName(): Promise<void> {
+  if (nameSave.disabled) return;
   const name = cleanName(nameInput.value);
   if (!name) {
     nameStatus.textContent = "Letters, numbers, space, . _ - only";
     return;
   }
   nameStatus.textContent = "Saving...";
+  nameSave.disabled = true;
   playerName = name;
   saveName(name);
-  const ok = await submitScore(name, score);
-  if (ok) closeNameForm();
-  else nameStatus.textContent = "Couldn't save score. Try again?";
-});
+  const error = await submitScore(name, score);
+  nameSave.disabled = false;
+  if (error === null) closeNameForm();
+  else nameStatus.textContent = error;
+}
 
 // Inside the X iframe the page only gets keyboard events after the first click,
 // so pointer input is the primary control and also grabs focus.

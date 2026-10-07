@@ -46,23 +46,24 @@
         flex: 1; font: inherit; padding: 8px; border-radius: 8px; cursor: pointer;
         border: 2px solid #fff; background: #73bf2e; color: #fff;
       }
-      #name-form button[type="button"] { background: transparent; }
+      #name-skip { background: transparent !important; }
+      #name-form button:disabled { opacity: 0.6; cursor: wait; }
       #name-status { min-height: 1.2em; font-size: 13px; color: #fcd34d; }
     </style>
   </head>
   <body>
     <div id="stage">
       <canvas id="game" tabindex="0"></canvas>
-      <form id="name-form" hidden autocomplete="off">
-        <strong>🏆 Top 10 score!</strong>
+      <div id="name-form" role="dialog" aria-labelledby="name-title" hidden>
+        <strong id="name-title">🏆 Top 10 score!</strong>
         <label for="name-input">Enter your name</label>
-        <input id="name-input" name="name" required spellcheck="false" enterkeyhint="done" />
+        <input id="name-input" autocomplete="off" spellcheck="false" enterkeyhint="done" />
         <div class="buttons">
           <button type="button" id="name-skip">Skip</button>
-          <button type="submit">Save</button>
+          <button type="button" id="name-save">Save</button>
         </div>
         <div id="name-status" aria-live="polite"></div>
-      </form>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
